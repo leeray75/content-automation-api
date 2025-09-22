@@ -12,7 +12,14 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "lint": "eslint src --ext .ts",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "docker:build": "./scripts/docker-build.sh",
+    "docker:run": "./scripts/docker-run.sh",
+    "docker:stop": "./scripts/docker-stop.sh",
+    "docker:logs": "./scripts/docker-logs.sh",
+    "docker:logs:follow": "./scripts/docker-logs.sh follow",
+    "docker:inspect": "./scripts/docker-inspect.sh",
+    "docker:clean": "./scripts/docker-clean.sh"
   },
   "dependencies": {
     "express": "^4.18.2",
