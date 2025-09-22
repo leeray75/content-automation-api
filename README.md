@@ -17,6 +17,7 @@ REST API for the Content Automation Platform, providing endpoints for managing a
 
 - Node.js 18+ 
 - npm or yarn
+- Docker (optional, for containerized deployment)
 
 ### Installation
 
@@ -40,6 +41,86 @@ npm run build
 
 # Start production server
 npm start
+```
+
+## Docker Support
+
+The API can be run in a Docker container for easy deployment and consistent environments.
+
+### Building the Docker Image
+
+```bash
+# Build the Docker image
+docker build -t content-automation-api .
+
+# Build with a specific tag
+docker build -t content-automation-api:latest .
+```
+
+### Running with Docker
+
+```bash
+# Run the container
+docker run -p 3000:3000 content-automation-api
+
+# Run with environment variables
+docker run -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e PORT=3000 \
+  content-automation-api
+
+# Run in detached mode
+docker run -d -p 3000:3000 --name content-api content-automation-api
+```
+
+### Docker Environment Variables
+
+When running in Docker, you can pass environment variables using the `-e` flag or by mounting an `.env` file:
+
+```bash
+# Using environment variables
+docker run -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e PORT=3000 \
+  -e CORS_ORIGIN=https://yourdomain.com \
+  content-automation-api
+
+# Using an env file
+docker run -p 3000:3000 --env-file .env content-automation-api
+```
+
+### Docker Health Check
+
+The Docker image includes a health check that monitors the `/health` endpoint. You can check the container health status:
+
+```bash
+# Check container health
+docker ps
+
+# View health check logs
+docker inspect --format='{{json .State.Health}}' <container_id>
+```
+
+### Docker Compose (Optional)
+
+For easier management, you can create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+```
+
+Then run with:
+```bash
+docker-compose up -d
 ```
 
 ### Testing
