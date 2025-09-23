@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [issue-2](https://github.com/leeray75/content-automation-api/issues/2) - Docker health checks and security hardening with non-root user
 - [issue-2](https://github.com/leeray75/content-automation-api/issues/2) - Updated documentation with Docker usage instructions and examples
 
+### Changed
+- [issue-1](https://github.com/leeray75/content-automation-stack/issues/1) - Optimize Dockerfile for health checks and build verification, remove curl dependency for Node.js-based health checks
+- [issue-1](https://github.com/leeray75/content-automation-stack/issues/1) - Integration with Docker Compose stack orchestration for multi-service deployment
+
 ## [0.1.0] - 2025-09-11
 
 ### Added
