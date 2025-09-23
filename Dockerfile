@@ -1,6 +1,9 @@
 # Use Node.js 22 LTS as base image
 FROM node:22-alpine
 
+# Install curl for health checks
+RUN apk add --no-cache curl
+
 # Set working directory
 WORKDIR /app
 
@@ -16,6 +19,9 @@ COPY . .
 
 # Build the TypeScript application
 RUN npm run build
+
+# Verify the build was successful
+RUN ls -la dist/ && test -f dist/index.js
 
 # Remove dev dependencies to reduce image size
 RUN (npm ci --only=production || npm install --only=production) && npm cache clean --force
