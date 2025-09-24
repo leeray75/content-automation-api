@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { articlesRouter } from './articles';
 import { landingPagesRouter } from './landingPages';
 import { adsRouter } from './ads';
+import { openProjectRouter } from './integrations/openproject';
 
 const router = Router();
 
@@ -9,6 +10,7 @@ const router = Router();
 router.use('/articles', articlesRouter);
 router.use('/landing-pages', landingPagesRouter);
 router.use('/ads', adsRouter);
+router.use('/integrations/openproject', openProjectRouter);
 
 // API info endpoint
 router.get('/', (req, res) => {
@@ -22,6 +24,7 @@ router.get('/', (req, res) => {
         articles: '/api/articles',
         landingPages: '/api/landing-pages',
         ads: '/api/ads',
+        openproject: '/api/integrations/openproject',
       },
       health: '/health',
     },

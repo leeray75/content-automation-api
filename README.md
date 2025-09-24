@@ -159,14 +159,64 @@ npm run test:watch
 - `PUT /api/ads/:id` - Update ad
 - `DELETE /api/ads/:id` - Delete ad
 
+### Integrations
+
+#### OpenProject
+
+- `GET /api/integrations/openproject/projects/:projectId` - Fetch project information from OpenProject
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:3000/api/integrations/openproject/projects/123
+```
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "123",
+    "identifier": "my-project",
+    "name": "My Project",
+    "description": "Project description",
+    "raw": {
+      // Full OpenProject API response
+    }
+  }
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Invalid or missing OpenProject API token
+- `404 Not Found` - Project not found in OpenProject
+- `500 Internal Server Error` - OpenProject server error or network issues
+
 ## Environment Variables
 
 Create a `.env` file in the root directory:
 
 ```env
+# Server Configuration
 PORT=3000
 NODE_ENV=development
+
+# OpenProject Integration
+OPENPROJECT_BASE_URL=http://openproject:8080
+OPENPROJECT_API_TOKEN=your-openproject-api-token
 ```
+
+### Required Environment Variables
+
+#### OpenProject Integration
+
+- `OPENPROJECT_BASE_URL` - Base URL for OpenProject API (default: `http://openproject:8080` for Docker)
+- `OPENPROJECT_API_TOKEN` - API token for authenticating with OpenProject (required for integration endpoints)
+
+**Note:** To generate an OpenProject API token:
+1. Log into your OpenProject instance
+2. Go to "My account" → "Access tokens"
+3. Create a new API token with appropriate permissions
+4. Copy the token and set it as `OPENPROJECT_API_TOKEN`
 
 ## Project Structure
 
