@@ -16,14 +16,41 @@ export interface OpenProjectError extends Error {
 export class OpenProjectService {
   private baseUrl: string;
   private apiToken: string;
+  private hostHeader?: string;
+  private timeoutMs: number;
 
-  constructor(baseUrl?: string, apiToken?: string) {
-    this.baseUrl = baseUrl || process.env.OPENPROJECT_BASE_URL || 'http://openproject:8080';
+  constructor(baseUrl?: string, apiToken?: string, hostHeader?: string, timeoutMs?: number) {
+    // Normalize base URL: strip trailing slash
+    let urlStr = baseUrl || process.env.OPENPROJECT_BASE_URL || 'http://openproject:8080';
+    urlStr = urlStr.replace(/\/+$/, '');
+
+    // If hostname is "openproject" and no port provided, default to :8080
+    try {
+      const u = new URL(urlStr);
+      if (!u.port && u.hostname === 'openproject') {
+        u.port = '8080';
+        urlStr = u.toString().replace(/\/+$/, '');
+      }
+    } catch (err) {
+      // leave urlStr as-is; fetch will error and provide feedback
+      logger.warn('Invalid OPENPROJECT_BASE_URL format', { baseUrl: urlStr });
+    }
+
+    this.baseUrl = urlStr;
     this.apiToken = apiToken || process.env.OPENPROJECT_API_TOKEN || '';
+    this.hostHeader = hostHeader || process.env.OPENPROJECT_HOST_HEADER;
+    this.timeoutMs = timeoutMs || parseInt(process.env.OPENPROJECT_TIMEOUT_MS || '10000');
 
     if (!this.apiToken) {
       logger.warn('OPENPROJECT_API_TOKEN not configured - OpenProject requests will fail');
     }
+
+    logger.info('OpenProject service initialized', {
+      baseUrl: this.baseUrl,
+      hasToken: !!this.apiToken,
+      hostHeader: this.hostHeader,
+      timeoutMs: this.timeoutMs,
+    });
   }
 
   async getProject(projectId: string): Promise<ProjectDTO> {
@@ -42,14 +69,29 @@ export class OpenProjectService {
       // OpenProject API keys use Basic auth with username "apikey" and the token as password
       const auth = Buffer.from(`apikey:${this.apiToken}`).toString('base64');
       
+      // Build headers with optional Host header override
+      const headers: Record<string, string> = {
+        'Authorization': `Basic ${auth}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
+      
+      if (this.hostHeader) {
+        headers['Host'] = this.hostHeader;
+        logger.debug('Using custom Host header', { hostHeader: this.hostHeader });
+      }
+
+      // Set up timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Authorization': `Basic ${auth}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
+        headers,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       // Handle different response statuses
       if (response.status === 401) {
@@ -96,11 +138,25 @@ export class OpenProjectService {
         throw error;
       }
 
+      // Handle timeout errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        logger.error('OpenProject request timed out', {
+          projectId,
+          url,
+          timeoutMs: this.timeoutMs,
+        });
+        const timeoutError = new Error(`OpenProject request timed out after ${this.timeoutMs}ms`) as OpenProjectError;
+        timeoutError.statusCode = 408;
+        timeoutError.code = 'OPENPROJECT_TIMEOUT';
+        throw timeoutError;
+      }
+
       // Handle network/fetch errors
       logger.error('Network error fetching OpenProject project', {
         projectId,
         url,
         error: error instanceof Error ? error.message : String(error),
+        errorName: error instanceof Error ? error.name : 'Unknown',
       });
 
       const networkError = new Error('Failed to connect to OpenProject') as OpenProjectError;
