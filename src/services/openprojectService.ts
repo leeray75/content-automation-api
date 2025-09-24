@@ -39,10 +39,13 @@ export class OpenProjectService {
     logger.info(`Fetching OpenProject project: ${projectId}`, { url });
 
     try {
+      // OpenProject API keys use Basic auth with username "apikey" and the token as password
+      const auth = Buffer.from(`apikey:${this.apiToken}`).toString('base64');
+      
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.apiToken}`,
+          'Authorization': `Basic ${auth}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
