@@ -22,7 +22,11 @@ Successfully implemented the OpenProject project endpoint that retrieves project
 - **Response Mapping** - Clean DTO mapping from OpenProject API to standardized format
 
 ### Technical Decisions
-- **Replaced Node.js fetch with undici** - Node.js fetch ignores Host headers, undici properly supports them
+- **Replaced Node.js fetch with undici** - Critical fix for Host header override:
+  - **Node.js fetch limitation**: The built-in `fetch` API silently ignores custom Host headers. Even when setting `headers['Host'] = 'localhost:8082'`, fetch sends the actual hostname from the URL (`openproject:8080`) instead
+  - **Why this broke OpenProject**: OpenProject validates the Host header against its configured hostname. When it received `Host: openproject:8080` instead of the expected `localhost:8082`, it returned `400 Bad Request - Invalid host_name configuration`
+  - **Undici solution**: The `undici` library's `request` method properly respects and sends custom Host headers, allowing container-to-container communication while satisfying OpenProject's hostname validation
+  - **Evidence**: Debug logs showed no "Setting Host header" messages with fetch (silently ignored), but proper Host header override with undici
 - **Environment-based configuration** - Uses OPENPROJECT_HOST_HEADER for container communication
 - **Timeout handling** - 10-second timeout with AbortController for reliability
 - **Structured error responses** - Consistent error format with proper HTTP status codes
