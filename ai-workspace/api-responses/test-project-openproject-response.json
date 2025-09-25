@@ -1,89 +1,102 @@
 {
-  "_embedded": {
-    "status": {
-      "_type": "ProjectStatus",
-      "id": "on_track",
-      "name": "On track",
+  "success": true,
+  "data": {
+    "id": "1",
+    "identifier": "test-project",
+    "name": "Test Project",
+    "description": {
+      "format": "markdown",
+      "raw": "",
+      "html": ""
+    },
+    "raw": {
+      "_embedded": {
+        "status": {
+          "_type": "ProjectStatus",
+          "id": "on_track",
+          "name": "On track",
+          "_links": {
+            "self": {
+              "href": "/api/v3/project_statuses/on_track",
+              "title": "On track"
+            }
+          }
+        }
+      },
+      "_type": "Project",
+      "id": 1,
+      "identifier": "test-project",
+      "name": "Test Project",
+      "active": true,
+      "public": false,
+      "description": {
+        "format": "markdown",
+        "raw": "",
+        "html": ""
+      },
+      "createdAt": "2025-09-24T06:42:21.401Z",
+      "updatedAt": "2025-09-24T06:49:55.446Z",
+      "statusExplanation": {
+        "format": "markdown",
+        "raw": "",
+        "html": ""
+      },
       "_links": {
         "self": {
+          "href": "/api/v3/projects/1",
+          "title": "Test Project"
+        },
+        "createWorkPackage": {
+          "href": "/api/v3/projects/1/work_packages/form",
+          "method": "post"
+        },
+        "createWorkPackageImmediately": {
+          "href": "/api/v3/projects/1/work_packages",
+          "method": "post"
+        },
+        "workPackages": {
+          "href": "/api/v3/projects/1/work_packages"
+        },
+        "storages": [],
+        "categories": {
+          "href": "/api/v3/projects/1/categories"
+        },
+        "versions": {
+          "href": "/api/v3/projects/1/versions"
+        },
+        "memberships": {
+          "href": "/api/v3/memberships?filters=%5B%7B%22project%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%221%22%5D%7D%7D%5D"
+        },
+        "types": {
+          "href": "/api/v3/projects/1/types"
+        },
+        "update": {
+          "href": "/api/v3/projects/1/form",
+          "method": "post"
+        },
+        "updateImmediately": {
+          "href": "/api/v3/projects/1",
+          "method": "patch"
+        },
+        "delete": {
+          "href": "/api/v3/projects/1",
+          "method": "delete"
+        },
+        "schema": {
+          "href": "/api/v3/projects/schema"
+        },
+        "status": {
           "href": "/api/v3/project_statuses/on_track",
           "title": "On track"
+        },
+        "ancestors": [],
+        "projectStorages": {
+          "href": "/api/v3/project_storages?filters=%5B%7B%22projectId%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%221%22%5D%7D%7D%5D"
+        },
+        "parent": {
+          "href": null
         }
       }
-    }
-  },
-  "_type": "Project",
-  "id": 1,
-  "identifier": "test-project",
-  "name": "Test Project",
-  "active": true,
-  "public": false,
-  "description": {
-    "format": "markdown",
-    "raw": "",
-    "html": ""
-  },
-  "createdAt": "2025-09-24T06:42:21.401Z",
-  "updatedAt": "2025-09-24T06:49:55.446Z",
-  "statusExplanation": {
-    "format": "markdown",
-    "raw": "",
-    "html": ""
-  },
-  "_links": {
-    "self": {
-      "href": "/api/v3/projects/1",
-      "title": "Test Project"
-    },
-    "createWorkPackage": {
-      "href": "/api/v3/projects/1/work_packages/form",
-      "method": "post"
-    },
-    "createWorkPackageImmediately": {
-      "href": "/api/v3/projects/1/work_packages",
-      "method": "post"
-    },
-    "workPackages": {
-      "href": "/api/v3/projects/1/work_packages"
-    },
-    "storages": [],
-    "categories": {
-      "href": "/api/v3/projects/1/categories"
-    },
-    "versions": {
-      "href": "/api/v3/projects/1/versions"
-    },
-    "memberships": {
-      "href": "/api/v3/memberships?filters=%5B%7B%22project%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%221%22%5D%7D%7D%5D"
-    },
-    "types": {
-      "href": "/api/v3/projects/1/types"
-    },
-    "update": {
-      "href": "/api/v3/projects/1/form",
-      "method": "post"
-    },
-    "updateImmediately": {
-      "href": "/api/v3/projects/1",
-      "method": "patch"
-    },
-    "delete": {
-      "href": "/api/v3/projects/1",
-      "method": "delete"
-    },
-    "schema": {
-      "href": "/api/v3/projects/schema"
-    },
-    "status": {
-      "href": "/api/v3/project_statuses/on_track",
-      "title": "On track"
-    },
-    "ancestors": [],
-    "projectStorages": {
-      "href": "/api/v3/project_storages?filters=%5B%7B%22projectId%22%3A%7B%22operator%22%3A%22%3D%22%2C%22values%22%3A%5B%221%22%5D%7D%7D%5D"
-    },
-    "parent": {
-      "href": null
     }
   }
 }
