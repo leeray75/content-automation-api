@@ -18,6 +18,7 @@ export class OpenProjectService {
   private apiToken: string;
   private hostHeader?: string;
   private timeoutMs: number;
+  private debugEnabled: boolean;
 
   constructor(baseUrl?: string, apiToken?: string, hostHeader?: string, timeoutMs?: number) {
     // Normalize base URL: strip trailing slash
@@ -40,6 +41,7 @@ export class OpenProjectService {
     this.apiToken = apiToken || process.env.OPENPROJECT_API_TOKEN || '';
     this.hostHeader = hostHeader || process.env.OPENPROJECT_HOST_HEADER;
     this.timeoutMs = timeoutMs || parseInt(process.env.OPENPROJECT_TIMEOUT_MS || '10000');
+    this.debugEnabled = process.env.OPENPROJECT_DEBUG === 'true';
 
     if (!this.apiToken) {
       logger.warn('OPENPROJECT_API_TOKEN not configured - OpenProject requests will fail');
@@ -50,6 +52,7 @@ export class OpenProjectService {
       hasToken: !!this.apiToken,
       hostHeader: this.hostHeader,
       timeoutMs: this.timeoutMs,
+      debugEnabled: this.debugEnabled,
     });
   }
 
@@ -69,16 +72,32 @@ export class OpenProjectService {
       // OpenProject API keys use Basic auth with username "apikey" and the token as password
       const auth = Buffer.from(`apikey:${this.apiToken}`).toString('base64');
       
-      // Build headers with optional Host header override
+      // Build headers with ENFORCED Host header override
       const headers: Record<string, string> = {
         'Authorization': `Basic ${auth}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       };
       
+      // ALWAYS set Host header if configured (critical for OpenProject hostname validation)
       if (this.hostHeader) {
         headers['Host'] = this.hostHeader;
-        logger.debug('Using custom Host header', { hostHeader: this.hostHeader });
+        if (this.debugEnabled) {
+          logger.debug('Setting Host header for OpenProject request', { hostHeader: this.hostHeader });
+        }
+      }
+
+      // Debug: Log outbound request details
+      if (this.debugEnabled) {
+        logger.debug('OpenProject outbound request', {
+          method: 'GET',
+          url,
+          headers: {
+            ...headers,
+            Authorization: `Basic ${auth.substring(0, 20)}...` // Truncate for security
+          },
+          timeoutMs: this.timeoutMs
+        });
       }
 
       // Set up timeout handling
@@ -93,22 +112,70 @@ export class OpenProjectService {
 
       clearTimeout(timeoutId);
 
-      // Handle different response statuses
-      if (response.status === 401) {
-        const error = new Error('Unauthorized access to OpenProject') as OpenProjectError;
-        error.statusCode = 401;
-        error.code = 'OPENPROJECT_UNAUTHORIZED';
-        throw error;
+      // Debug: Log response details
+      if (this.debugEnabled) {
+        const responseHeaders: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+          responseHeaders[key] = value;
+        });
+        
+        logger.debug('OpenProject response received', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: responseHeaders,
+          url: response.url
+        });
       }
 
-      if (response.status === 404) {
-        const error = new Error(`Project ${projectId} not found`) as OpenProjectError;
-        error.statusCode = 404;
-        error.code = 'OPENPROJECT_NOT_FOUND';
-        throw error;
-      }
-
+      // Handle different response statuses with detailed error logging
       if (!response.ok) {
+        let responseBody = '';
+        try {
+          responseBody = await response.text();
+          if (this.debugEnabled) {
+            logger.debug('OpenProject error response body', { 
+              status: response.status, 
+              body: responseBody.substring(0, 500) // Truncate long responses
+            });
+          }
+        } catch (bodyError) {
+          logger.warn('Could not read OpenProject error response body', { bodyError });
+        }
+
+        if (response.status === 401) {
+          logger.error('OpenProject authentication failed', { 
+            status: response.status, 
+            responseBody: responseBody.substring(0, 200),
+            hasToken: !!this.apiToken,
+            hostHeader: this.hostHeader
+          });
+          const error = new Error('Unauthorized access to OpenProject') as OpenProjectError;
+          error.statusCode = 401;
+          error.code = 'OPENPROJECT_UNAUTHORIZED';
+          throw error;
+        }
+
+        if (response.status === 404) {
+          logger.error('OpenProject project not found', { 
+            projectId, 
+            status: response.status, 
+            responseBody: responseBody.substring(0, 200) 
+          });
+          const error = new Error(`Project ${projectId} not found`) as OpenProjectError;
+          error.statusCode = 404;
+          error.code = 'OPENPROJECT_NOT_FOUND';
+          throw error;
+        }
+
+        // Generic error with response body
+        logger.error('OpenProject API error', {
+          status: response.status,
+          statusText: response.statusText,
+          responseBody: responseBody.substring(0, 200),
+          url,
+          projectId
+        });
+        
         const error = new Error(`OpenProject API error: ${response.status} ${response.statusText}`) as OpenProjectError;
         error.statusCode = response.status;
         error.code = 'OPENPROJECT_ERROR';
