@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger';
+import { request } from 'undici';
 
 export interface ProjectDTO {
   id: string;
@@ -104,62 +105,45 @@ export class OpenProjectService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
-      // Use a custom fetch implementation that properly handles Host header
-      const fetchOptions: any = {
+      // Use undici's request method which properly supports Host header override
+      const requestOptions: any = {
         method: 'GET',
         headers,
         signal: controller.signal,
       };
 
-      // For Node.js fetch, we need to handle Host header differently
-      if (this.hostHeader) {
-        // Parse the URL to modify the hostname for the request
-        const urlObj = new URL(url);
-        const originalHost = urlObj.host;
-        
-        // Keep the original URL but ensure Host header is sent
-        fetchOptions.headers = {
-          ...headers,
-          'Host': this.hostHeader
-        };
-        
-        if (this.debugEnabled) {
-          logger.debug('Modified fetch request for Host header override', {
-            originalUrl: url,
-            originalHost,
-            hostHeaderOverride: this.hostHeader,
-            finalHeaders: fetchOptions.headers
-          });
-        }
+      if (this.debugEnabled) {
+        logger.debug('Using undici request with Host header override', {
+          url,
+          hostHeaderOverride: this.hostHeader,
+          headers: {
+            ...headers,
+            Authorization: `Basic ${auth.substring(0, 20)}...` // Truncate for security
+          }
+        });
       }
 
-      const response = await fetch(url, fetchOptions);
+      const response = await request(url, requestOptions);
 
       clearTimeout(timeoutId);
 
       // Debug: Log response details
       if (this.debugEnabled) {
-        const responseHeaders: Record<string, string> = {};
-        response.headers.forEach((value, key) => {
-          responseHeaders[key] = value;
-        });
-        
         logger.debug('OpenProject response received', {
-          status: response.status,
-          statusText: response.statusText,
-          headers: responseHeaders,
-          url: response.url
+          statusCode: response.statusCode,
+          headers: response.headers,
+          url
         });
       }
 
       // Handle different response statuses with detailed error logging
-      if (!response.ok) {
+      if (response.statusCode >= 400) {
         let responseBody = '';
         try {
-          responseBody = await response.text();
+          responseBody = await response.body.text();
           if (this.debugEnabled) {
             logger.debug('OpenProject error response body', { 
-              status: response.status, 
+              statusCode: response.statusCode, 
               body: responseBody.substring(0, 500) // Truncate long responses
             });
           }
@@ -167,9 +151,9 @@ export class OpenProjectService {
           logger.warn('Could not read OpenProject error response body', { bodyError });
         }
 
-        if (response.status === 401) {
+        if (response.statusCode === 401) {
           logger.error('OpenProject authentication failed', { 
-            status: response.status, 
+            statusCode: response.statusCode, 
             responseBody: responseBody.substring(0, 200),
             hasToken: !!this.apiToken,
             hostHeader: this.hostHeader
@@ -180,10 +164,10 @@ export class OpenProjectService {
           throw error;
         }
 
-        if (response.status === 404) {
+        if (response.statusCode === 404) {
           logger.error('OpenProject project not found', { 
             projectId, 
-            status: response.status, 
+            statusCode: response.statusCode, 
             responseBody: responseBody.substring(0, 200) 
           });
           const error = new Error(`Project ${projectId} not found`) as OpenProjectError;
@@ -194,20 +178,19 @@ export class OpenProjectService {
 
         // Generic error with response body
         logger.error('OpenProject API error', {
-          status: response.status,
-          statusText: response.statusText,
+          statusCode: response.statusCode,
           responseBody: responseBody.substring(0, 200),
           url,
           projectId
         });
         
-        const error = new Error(`OpenProject API error: ${response.status} ${response.statusText}`) as OpenProjectError;
-        error.statusCode = response.status;
+        const error = new Error(`OpenProject API error: ${response.statusCode}`) as OpenProjectError;
+        error.statusCode = response.statusCode;
         error.code = 'OPENPROJECT_ERROR';
         throw error;
       }
 
-      const projectData = await response.json() as any;
+      const projectData = await response.body.json() as any;
 
       // Map to our DTO format
       const project: ProjectDTO = {
