@@ -104,11 +104,36 @@ export class OpenProjectService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
-      const response = await fetch(url, {
+      // Use a custom fetch implementation that properly handles Host header
+      const fetchOptions: any = {
         method: 'GET',
         headers,
         signal: controller.signal,
-      });
+      };
+
+      // For Node.js fetch, we need to handle Host header differently
+      if (this.hostHeader) {
+        // Parse the URL to modify the hostname for the request
+        const urlObj = new URL(url);
+        const originalHost = urlObj.host;
+        
+        // Keep the original URL but ensure Host header is sent
+        fetchOptions.headers = {
+          ...headers,
+          'Host': this.hostHeader
+        };
+        
+        if (this.debugEnabled) {
+          logger.debug('Modified fetch request for Host header override', {
+            originalUrl: url,
+            originalHost,
+            hostHeaderOverride: this.hostHeader,
+            finalHeaders: fetchOptions.headers
+          });
+        }
+      }
+
+      const response = await fetch(url, fetchOptions);
 
       clearTimeout(timeoutId);
 
